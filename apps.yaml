@@ -1,0 +1,6 @@
+update_effective_temperature:
+  module: updateEffectiveTemperature
+  class: UpdateEffectiveTemperature
+control_heater:
+  module: controlHeater
+  class: ControlHeater
