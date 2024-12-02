@@ -20,15 +20,15 @@ class UpdateEffectiveTemperature(hass.Hass):
             temp = self.calculate(boysRoomTemp, guestRoomTemp)
             self.log(temp)
             effectiveTempEntity = self.get_entity("input_text.heater_last_effective_temperature")
-            #effectiveTempEntity.set_state(state=temp)
+            effectiveTempEntity.set_state(state=temp)
         except Exception as e:
             self.log('Something went wrong.\n{}'.format(e))
 
     def calculate(self, boysRoomTemp: float, guestRoomTemp: float):
         temp = -1
-        if guestRoomTemp < 19.2:
-            temp = (boysRoomTemp + guestRoomTemp + 1.1)/2
-        elif (guestRoomTemp > boysRoomTemp) & (guestRoomTemp > 20.5):
+        if guestRoomTemp < 19.6:
+            temp = (boysRoomTemp + guestRoomTemp + 0.9)/2
+        elif (guestRoomTemp > boysRoomTemp) and (guestRoomTemp > 20.5):
             temp = guestRoomTemp
         else:
             temp = boysRoomTemp

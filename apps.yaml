@@ -4,3 +4,10 @@ update_effective_temperature:
 control_heater:
   module: controlHeater
   class: ControlHeater
+# test:
+#   module: test
+#   class: Test
+# electricityOutage:
+#   module: electricityOutage
+#   class: ElectricityOutage
+  
