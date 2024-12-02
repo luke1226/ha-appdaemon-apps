@@ -4,10 +4,16 @@ update_effective_temperature:
 control_heater:
   module: controlHeater
   class: ControlHeater
+klarta4_schedule:
+  module: klarta4Schedule
+  class: Klarta4Schedule
+bedroom_air_cleaning:
+  module: bedroomAirCleaning
+  class: BedroomAirCleaning
 # test:
 #   module: test
 #   class: Test
-# electricityOutage:
-#   module: electricityOutage
-#   class: ElectricityOutage
+electricityOutage:
+  module: electricityOutage
+  class: ElectricityOutage
   
