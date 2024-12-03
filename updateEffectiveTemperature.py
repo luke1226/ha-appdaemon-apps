@@ -9,6 +9,8 @@ from appdaemon import adapi
 
 
 class UpdateEffectiveTemperature(hass.Hass):
+    desiredTempId = "input_number.set_heater_temp"
+    
     def initialize(self):
         self.log("UpdateEffectiveTemperature started")
         self.run_every(self.main, "now", 60)
@@ -25,11 +27,14 @@ class UpdateEffectiveTemperature(hass.Hass):
             self.log('Something went wrong.\n{}'.format(e))
 
     def calculate(self, boysRoomTemp: float, guestRoomTemp: float):
+        desiredTemp = float(self.get_state(self.desiredTempId))
+        guestTempConst = 0.7
+        guestRoomMinTemp = desiredTemp - guestTempConst #default 19.8
         temp = -1
-        if guestRoomTemp < 19.6:
-            temp = (boysRoomTemp + guestRoomTemp + 0.9)/2
-        elif (guestRoomTemp > boysRoomTemp) and (guestRoomTemp > 20.5):
-            temp = guestRoomTemp
+        if guestRoomTemp < guestRoomMinTemp:
+            temp = (boysRoomTemp + guestRoomTemp + guestTempDiffConst)/2
+        elif (guestRoomTemp - boysRoomTemp > 0.3) and (guestRoomTemp > 20.5):
+            temp = boysRoomTemp
         else:
             temp = boysRoomTemp
         return temp

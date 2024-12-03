@@ -1,6 +1,7 @@
 from appdaemon.plugins.hass import hassapi as hass
 from datetime import time
-import threading
+from time import sleep
+from datetime import datetime
 
 #
 # BedroomAirCleaning App
@@ -17,24 +18,15 @@ class BedroomAirCleaning(hass.Hass):
 
     def initialize(self):
         self.log("BedroomAirCleaning app started")
+        # sensor = self.get_entity(self.doorSensorId)
+        # self.log("sensor:"+sensor.get_state())
         powerOnTime = time(19, 0, 0)
         powerOffTime = time(9, 0, 0)
-        self.log("BedroomAirCleaning app started")
-        #thread1 = threading.Thread(target=self.run_daily_powerOn)
-        self.log("BedroomAirCleaning app started")
-
-        #thread1.start()
-        #thread2 = threading.Thread(target=self.run_daily(self.powerOff, powerOffTime))
         self.run_daily(self.powerOn, powerOnTime)
         self.run_daily(self.powerOff, powerOffTime)
-        self.log("end of run daily")
-        thread1 = threading.Thread(target=self.listen_doorOpened)
-        thread2 = threading.Thread(target=self.listen_doorClosed)
 
-        thread1.start()
-        thread2.start()
-        #self.listen_state(self.doorOpened, self.doorSensorId, "on")
-        #self.listen_state(self.doorClosed, self.doorSensorId, "off")
+        self.listen_state(self.doorOpened, self.doorSensorId, new="on")
+        self.listen_state(self.doorClosed, self.doorSensorId, new="off")
         self.log("end of init")
 
     def listen_doorOpened(self):
@@ -45,21 +37,39 @@ class BedroomAirCleaning(hass.Hass):
 
     def powerOn(self, kwargs):
         vestfrostSwitch = self.get_entity(self.vestfrostSwitchId)
-        vestfrostLock = self.get_entity(self.vestfrostLockId)
-        vestfrostAnion = self.get_entity(self.vestfrostAnionId)
-        vestfrostLock.turn_off()
-        vestfrostSwitch.turn_on()
-        vestfrostAnion.turn_on()
-        vestfrostLock.turn_on()
+        if vestfrostSwitch.get_state() == "off":
+            vestfrostLock = self.get_entity(self.vestfrostLockId)
+            vestfrostAnion = self.get_entity(self.vestfrostAnionId)
+            vestfrostLock.turn_off()
+            vestfrostSwitch.turn_on()
+            vestfrostAnion.turn_on()
+            vestfrostLock.turn_on()
 
     def powerOff(self, kwargs):
         vestfrostSwitch = self.get_entity(self.vestfrostSwitchId)
-        vestfrostLock = self.get_entity(self.vestfrostLockId)
-        vestfrostLock.turn_off()
-        vestfrostSwitch.turn_off()
+        if vestfrostSwitch.get_state() == "on":
+            vestfrostLock = self.get_entity(self.vestfrostLockId)
+            vestfrostLock.turn_off()
+            vestfrostSwitch.turn_off()
 
-    def doorOpened(self, kwargs):
+    def doorOpened(self, entity, attribute, old, new, kwargs):
+        now = datetime.now()
+        if now > time(9, 0, 0) and now < time(19, 0, 0):
+            return
+        
         self.log("door opened")
+        sleep(30)
+        entityObj = self.get_entity(entity)
+        if entityObj.get_state() == "on":
+            self.powerOff(kwargs)
 
-    def doorClosed(self, kwargs):
+    def doorClosed(self, entity, attribute, old, new, kwargs):
+        now = datetime.now()
+        if now > time(9, 0, 0) and now < time(19, 0, 0):
+            return
+        
         self.log("door closed")
+        sleep(30)
+        entityObj = self.get_entity(entity)
+        if entityObj.get_state() == "off":
+            self.powerOn(kwargs)
