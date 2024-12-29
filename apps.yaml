@@ -10,10 +10,13 @@ klarta4_schedule:
 bedroom_air_cleaning:
   module: bedroomAirCleaning
   class: BedroomAirCleaning
-# test:
-#   module: test
-#   class: Test
+setOutdoorTemperature:
+  module: setOutdoorTemperature
+  class: SetOutdoorTemperature
 electricityOutage:
   module: electricityOutage
   class: ElectricityOutage
+saveCurrentTemperature:
+  module: saveCurrentTemperature
+  class: SaveCurrentTemperature
   

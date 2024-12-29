@@ -21,7 +21,9 @@ class Klarta4Schedule(hass.Hass):
     def powerOn(self, kwargs):
         guestFanSmartPlugSwitch = self.get_entity(self.klartaSwitchId)
         guestFanSmartPlugSwitch.turn_on()
+        self.log("Klarta power on")
 
     def powerOff(self, kwargs):
         guestFanSmartPlugSwitch = self.get_entity(self.klartaSwitchId)
         guestFanSmartPlugSwitch.turn_off()
+        self.log("Klarta power off")

@@ -13,13 +13,17 @@ class ElectricityOutage(hass.Hass):
     electricityStateId = "input_boolean.home_electricity_state"
 
     def initialize(self):
+
+        # fan2Switch = self.get_entity("switch.electricityoutagesensor_switch")
+        # fan2Switch.turn_on()
+        # return;
         a = 1
         #handle = self.listen_log(self.a, 'WARNING')
         # self.main(kwargs=any)
         #self.log("ElectricityOutage app started")
         #self.log("listening for log")
         #self.main(kwargs=any)
-        self.run_every(self.main, "now", 1*60)
+        self.run_every(self.main, "now", 5*60)
         # electricityWorksInput = self.get_entity("input_boolean.home_electricity_state")
         # electricityWorksInput.turn_on()
 

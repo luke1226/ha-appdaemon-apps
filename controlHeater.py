@@ -12,6 +12,7 @@ class ControlHeater(hass.Hass):
     TIME_FORMAT = "%Y-%m-%d, %H:%M:%S"
     heaterSwitchId = "switch.heater_switch"
     guestFanSmartPlugSwitchId = "switch.smart_plug_1"
+    guestFan2SmartPlugSwitchId = "switch.electricityoutagesensor_switch"
 
     def initialize(self):
         self.log("ControlHeater app started")
@@ -47,12 +48,19 @@ class ControlHeater(hass.Hass):
             heaterSwitch = self.get_entity(self.heaterSwitchId)
             heaterSwitch.turn_on()
             if isAutoFanActive:
-                guestFanSmartPlugSwitch.turn_on()
+                self.run_in(self.turnOnFan, 10*60)
             
             lastTurnOnInput = self.get_entity("input_text.heater_last_turn_on")
             lastTurnOnInput.set_state(state=time.strftime(self.TIME_FORMAT))
             self.logStateToFile(time, effectiveTemp, True)
-
+    
+    def turnOnFan(self, kwargs):
+        guestFanSmartPlugSwitch = self.get_entity(self.guestFanSmartPlugSwitchId)
+        guestFan2SmartPlugSwitch = self.get_entity(self.guestFan2SmartPlugSwitchId)
+        guestFanSmartPlugSwitch.turn_on()
+        #guestFan2SmartPlugSwitch.turn_on()
+        self.log("fan turned on")
+        
     def turnOffHeater(self, time: datetime, effectiveTemp: float, isTurnOn:bool):
         self.log("case2")
         if isTurnOn==True:
@@ -66,7 +74,9 @@ class ControlHeater(hass.Hass):
 
     def turnOffFan(self, kwargs):
         guestFanSmartPlugSwitch = self.get_entity(self.guestFanSmartPlugSwitchId)
+        guestFan2SmartPlugSwitch = self.get_entity(self.guestFan2SmartPlugSwitchId)
         guestFanSmartPlugSwitch.turn_off()
+        #guestFan2SmartPlugSwitch.turn_off()
         self.log("fan turned off")
 
     def logStateToFile(self, time: datetime, effectiveTemp: float, isTurnOn: bool):

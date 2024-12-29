@@ -15,13 +15,16 @@ class BedroomAirCleaning(hass.Hass):
     vestfrostLockId = "switch.vestfrost_lock"
     vestfrostAnionId = "switch.vestfrost_anion"
     doorSensorId = "binary_sensor.contactsensor_opening"
+    powerOnHours = 19
+    powerOffHours = 9
+    doorStateChangeSeconds = 30
 
     def initialize(self):
         self.log("BedroomAirCleaning app started")
         # sensor = self.get_entity(self.doorSensorId)
         # self.log("sensor:"+sensor.get_state())
-        powerOnTime = time(19, 0, 0)
-        powerOffTime = time(9, 0, 0)
+        powerOnTime = time(self.powerOnHours, 0, 0)
+        powerOffTime = time(self.powerOffHours, 0, 0)
         self.run_daily(self.powerOn, powerOnTime)
         self.run_daily(self.powerOff, powerOffTime)
 
@@ -53,23 +56,27 @@ class BedroomAirCleaning(hass.Hass):
             vestfrostSwitch.turn_off()
 
     def doorOpened(self, entity, attribute, old, new, kwargs):
-        now = datetime.now()
-        if now > time(9, 0, 0) and now < time(19, 0, 0):
+        self.log("door opened")
+        now = datetime.now().time()
+        self.log("now:"+str(now))
+        if now > time(self.powerOffHours, 0, 0) and now < time(self.powerOnHours, 0, 0):
             return
         
-        self.log("door opened")
-        sleep(30)
+        self.log("door opened condition passed")
+        sleep(self.doorStateChangeSeconds)
         entityObj = self.get_entity(entity)
         if entityObj.get_state() == "on":
             self.powerOff(kwargs)
 
     def doorClosed(self, entity, attribute, old, new, kwargs):
-        now = datetime.now()
-        if now > time(9, 0, 0) and now < time(19, 0, 0):
+        self.log("door closed")
+        now = datetime.now().time()
+        self.log("now:"+str(now))
+        if now > time(self.powerOffHours, 0, 0) and now < time(self.powerOnHours, 0, 0):
             return
         
-        self.log("door closed")
-        sleep(30)
+        self.log("door closed condition passed")
+        sleep(self.doorStateChangeSeconds)
         entityObj = self.get_entity(entity)
         if entityObj.get_state() == "off":
             self.powerOn(kwargs)
