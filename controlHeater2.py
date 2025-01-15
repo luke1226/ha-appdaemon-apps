@@ -8,34 +8,37 @@ from datetime import datetime
 #
 
 
-class ControlHeater(hass.Hass):
+class ControlHeater2(hass.Hass):
     TIME_FORMAT = "%Y-%m-%d, %H:%M:%S"
     heaterSwitchId = "switch.heater_switch"
     guestFanSmartPlugSwitchId = "switch.smart_plug_1"
     guestFan2SmartPlugSwitchId = "switch.electricityoutagesensor_switch"
 
     def initialize(self):
-        self.log("ControlHeater app started")
+        self.log("ControlHeater2 app started")
         self.run_every(self.main, "now", 15*60)
     
     def main(self, kwargs):
         try:
             time = self.datetime()
             isTurnOn = self.get_state("switch.heater_switch") == "on"
-            currentAverageTemp = float(self.get_state("input_text.heater_current_average_temperature"))
             effectiveTemp = float(self.get_state("input_text.heater_last_effective_temperature"))
             desiredTemp = float(self.get_state("input_number.set_heater_temp"))
             desiredMinTemp = desiredTemp - 0.1
             desiredMaxTemp = desiredTemp + 0.2
+            outdoorTemp = float(self.get_state("sensor.outdoor_temperature"))
             isAutoFanActive = self.get_state("input_boolean.heater_fan1_toggle") == "on"
             # self.turnOnHeater(time, effectiveTemp, isTurnOn=False, isAutoFanActive=False)
             # self.turnOffHeater(time, effectiveTemp, isTurnOn=True)
             # return
 
-            if effectiveTemp < desiredMinTemp:
+            outdoorTempRatio = 0
+            if outdoorTemp < 2: outdoorTempRatio = 0.1
+
+            if effectiveTemp-outdoorTempRatio < desiredMinTemp:
                 self.log("turning on")
                 self.turnOnHeater(time, effectiveTemp, isTurnOn=isTurnOn, isAutoFanActive=isAutoFanActive)
-            elif currentAverageTemp > desiredMaxTemp:
+            elif effectiveTemp > desiredMaxTemp:
                 self.turnOffHeater(time, effectiveTemp, isTurnOn=isTurnOn)
             else:
                 self.log("temperature ok")

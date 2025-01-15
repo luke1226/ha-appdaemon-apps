@@ -19,4 +19,7 @@ electricityOutage:
 saveCurrentTemperature:
   module: saveCurrentTemperature
   class: SaveCurrentTemperature
+set_desired_temperature:
+  module: setDesiredTemperature
+  class: SetDesiredTemperature
   

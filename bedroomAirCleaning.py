@@ -2,6 +2,7 @@ from appdaemon.plugins.hass import hassapi as hass
 from datetime import time
 from time import sleep
 from datetime import datetime
+import pytz
 
 #
 # BedroomAirCleaning App
@@ -57,7 +58,7 @@ class BedroomAirCleaning(hass.Hass):
 
     def doorOpened(self, entity, attribute, old, new, kwargs):
         self.log("door opened")
-        now = datetime.now().time()
+        now = datetime.now(pytz.timezone('Europe/Warsaw')).time()
         self.log("now:"+str(now))
         if now > time(self.powerOffHours, 0, 0) and now < time(self.powerOnHours, 0, 0):
             return
@@ -70,7 +71,7 @@ class BedroomAirCleaning(hass.Hass):
 
     def doorClosed(self, entity, attribute, old, new, kwargs):
         self.log("door closed")
-        now = datetime.now().time()
+        now = datetime.now(pytz.timezone('Europe/Warsaw')).time()
         self.log("now:"+str(now))
         if now > time(self.powerOffHours, 0, 0) and now < time(self.powerOnHours, 0, 0):
             return
