@@ -24,23 +24,16 @@ class ControlHeater(hass.Hass):
         try:
             time = self.datetime()
             isTurnOn = self.get_state("switch.heater_switch") == "on"
-            currentAverageTemp = float(self.get_state("input_text.heater_current_average_temperature"))
-
-            desiredTemp = float(self.get_state("input_number.set_heater_temp"))
-            desiredMinTemp = desiredTemp - 0.1
-            desiredMaxTemp = desiredTemp + 0.2
+            isFanTurnOn = self.get_state("switch.smart_plug_1") == "on"
             isAutoFanActive = self.get_state("input_boolean.heater_fan1_toggle") == "on"
-            # self.turnOnHeater(time, effectiveTemp, isTurnOn=False, isAutoFanActive=False)
-            # self.turnOffHeater(time, effectiveTemp, isTurnOn=True)
-            # return
 
             heaterTurnOnNeeded = self.calculateIfNeeded(isTurnOn)
             if heaterTurnOnNeeded == True:
                 self.log("turning on")
-                self.turnOnHeater(time, effectiveTemp, isTurnOn=isTurnOn, isAutoFanActive=isAutoFanActive)
+                self.turnOnHeater(time, isTurnOn=isTurnOn, isFanTurnOn=isFanTurnOn, isAutoFanActive=isAutoFanActive)
             else:
                 self.log("turning off")
-                self.turnOffHeater(time, effectiveTemp, isTurnOn=isTurnOn)
+                self.turnOffHeater(time, isTurnOn=isTurnOn, isFanTurnOn=isFanTurnOn)
                 
         except Exception as e:
             self.log('Something went wrong.\n{}'.format(e))
@@ -76,18 +69,20 @@ class ControlHeater(hass.Hass):
         except (ValueError, TypeError):
             return 99.0
 
-    def turnOnHeater(self, time: datetime, isTurnOn:bool, isAutoFanActive:bool):
+    def turnOnHeater(self, time: datetime, isTurnOn:bool, isFanTurnOn:bool, isAutoFanActive:bool):
         self.log("case1")
         if isTurnOn==False:
             self.log("heater is turning on")
             heaterSwitch = self.get_entity(self.heaterSwitchId)
             heaterSwitch.turn_on()
-            if isAutoFanActive:
-                self.run_in(self.turnOnFan, 5*60)
             
             lastTurnOnInput = self.get_entity("input_text.heater_last_turn_on")
             lastTurnOnInput.set_state(state=time.strftime(self.TIME_FORMAT))
             self.logStateToFile(time, True)
+
+        if isFanTurnOn==False and isAutoFanActive:
+            self.log("heater fans are turning on")
+            self.run_in(self.turnOnFan, 5*60)
     
     def turnOnFan(self, kwargs):
         guestFanSmartPlugSwitch = self.get_entity(self.guestFanSmartPlugSwitchId)
@@ -99,7 +94,7 @@ class ControlHeater(hass.Hass):
         #guestFan2SmartPlugSwitch.turn_on()
         self.log("fan turned on")
         
-    def turnOffHeater(self, time: datetime, isTurnOn:bool):
+    def turnOffHeater(self, time: datetime, isTurnOn:bool, isFanTurnOn:bool):
         self.log("case2")
         if isTurnOn==True:
             self.log("heater is turning off")
@@ -108,6 +103,9 @@ class ControlHeater(hass.Hass):
             lastTurnOffInput = self.get_entity("input_text.heater_last_turn_off")
             lastTurnOffInput.set_state(state=time.strftime(self.TIME_FORMAT))
             self.logStateToFile(time, False)
+
+        if isFanTurnOn==True:
+            self.log("heater fans are turning off")
             self.run_in(self.turnOffFan, 15*60)
 
     def turnOffFan(self, kwargs):
