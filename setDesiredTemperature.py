@@ -17,6 +17,7 @@ class SetDesiredTemperature(hass.Hass):
     def initialize(self):
         self.log("SetDesiredTemperature started")
         self.run_every(self.main, "now", 5*60)
+        self.main(self)
     
     def main(self, kwargs):
         try:
@@ -26,9 +27,9 @@ class SetDesiredTemperature(hass.Hass):
             lowerTempOffTime = time(5, 0, 0)
             now = datetime.now(pytz.timezone('Europe/Warsaw')).time()
             #isTurnOn = True
-            temp = 20.4
+            temp = 20.2
             self.log('now: ' + str(now))
-            if isTurnOn and (now > lowerTempOnTime or now < lowerTempOffTime):
+            if now > lowerTempOnTime or now < lowerTempOffTime:
                 temp = 19.8
 
             self.log('Desired temp: '+str(temp))

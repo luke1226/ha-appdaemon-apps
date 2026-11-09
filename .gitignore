@@ -1,1 +1,2 @@
 /apps.yaml.example
+/__pycache__/*.pyc

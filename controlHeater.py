@@ -12,18 +12,20 @@ class ControlHeater(hass.Hass):
     TIME_FORMAT = "%Y-%m-%d, %H:%M:%S"
     heaterSwitchId = "switch.heater_switch"
     guestFanSmartPlugSwitchId = "switch.smart_plug_1"
-    guestFan2SmartPlugSwitchId = "switch.electricityoutagesensor_switch"
+    groundFloorFanSmartPlugSwitchId = "switch.electricityoutagesensor_switch"
+    boysRoomFanPowerPlugId = "switch.powerplug3"
 
     def initialize(self):
         self.log("ControlHeater app started")
         self.run_every(self.main, "now", 15*60)
+        self.main(self)
     
     def main(self, kwargs):
         try:
             time = self.datetime()
             isTurnOn = self.get_state("switch.heater_switch") == "on"
             currentAverageTemp = float(self.get_state("input_text.heater_current_average_temperature"))
-            effectiveTemp = float(self.get_state("input_text.heater_last_effective_temperature"))
+
             desiredTemp = float(self.get_state("input_number.set_heater_temp"))
             desiredMinTemp = desiredTemp - 0.1
             desiredMaxTemp = desiredTemp + 0.2
@@ -32,38 +34,72 @@ class ControlHeater(hass.Hass):
             # self.turnOffHeater(time, effectiveTemp, isTurnOn=True)
             # return
 
-            if effectiveTemp < desiredMinTemp:
+            heaterTurnOnNeeded = self.calculateIfNeeded(isTurnOn)
+            if heaterTurnOnNeeded == True:
                 self.log("turning on")
                 self.turnOnHeater(time, effectiveTemp, isTurnOn=isTurnOn, isAutoFanActive=isAutoFanActive)
-            elif currentAverageTemp > desiredMaxTemp:
-                self.turnOffHeater(time, effectiveTemp, isTurnOn=isTurnOn)
             else:
-                self.log("temperature ok")
+                self.log("turning off")
+                self.turnOffHeater(time, effectiveTemp, isTurnOn=isTurnOn)
+                
         except Exception as e:
             self.log('Something went wrong.\n{}'.format(e))
 
-    def turnOnHeater(self, time: datetime, effectiveTemp: float, isTurnOn:bool, isAutoFanActive:bool):
+    def calculateIfNeeded(self, isTurnOn: bool):
+        desiredMin = 0.1
+        desiredMax = 0.2
+        
+        desiredGroundFloorTemp = 21.0
+        desiredBoysRoomTemp = 20.7
+        desiredGuestRoomTemp = 19.8
+        
+        groundFloorTemp = self.getTemp("sensor.termometer6_temperature")
+        boysRoomTemp = self.getTemp("sensor.atc_220f_temperature")
+        guestRoomTemp = self.getTemp("sensor.atc_58fc_temperature")
+        
+        if isTurnOn:
+            if groundFloorTemp > (desiredGroundFloorTemp + desiredMax) and boysRoomTemp > (desiredBoysRoomTemp + desiredMax) and guestRoomTemp > (desiredGuestRoomTemp + desiredMax): return False
+            return True
+        else:
+            if groundFloorTemp < (desiredGroundFloorTemp - desiredMin): return True
+            elif boysRoomTemp < (desiredBoysRoomTemp - desiredMin): return True
+            elif guestRoomTemp < (desiredGuestRoomTemp - desiredMin): return True
+        
+        return False
+        
+    def getTemp(self, entity_id):
+        val = self.get_state(entity_id)
+        if val in {None, 'unavailable', 'unknown', '', 'none', 'null'}:
+            return 99.0
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return 99.0
+
+    def turnOnHeater(self, time: datetime, isTurnOn:bool, isAutoFanActive:bool):
         self.log("case1")
-        guestFanSmartPlugSwitch = self.get_entity(self.guestFanSmartPlugSwitchId)
         if isTurnOn==False:
             self.log("heater is turning on")
             heaterSwitch = self.get_entity(self.heaterSwitchId)
             heaterSwitch.turn_on()
             if isAutoFanActive:
-                self.run_in(self.turnOnFan, 10*60)
+                self.run_in(self.turnOnFan, 5*60)
             
             lastTurnOnInput = self.get_entity("input_text.heater_last_turn_on")
             lastTurnOnInput.set_state(state=time.strftime(self.TIME_FORMAT))
-            self.logStateToFile(time, effectiveTemp, True)
+            self.logStateToFile(time, True)
     
     def turnOnFan(self, kwargs):
         guestFanSmartPlugSwitch = self.get_entity(self.guestFanSmartPlugSwitchId)
-        guestFan2SmartPlugSwitch = self.get_entity(self.guestFan2SmartPlugSwitchId)
+        groundFloorFanSmartPlugSwitch = self.get_entity(self.groundFloorFanSmartPlugSwitchId)
+        boysRoomFanPowerPlug = self.get_entity(self.boysRoomFanPowerPlugId)
         guestFanSmartPlugSwitch.turn_on()
+        groundFloorFanSmartPlugSwitch.turn_on()
+        boysRoomFanPowerPlug.turn_on()
         #guestFan2SmartPlugSwitch.turn_on()
         self.log("fan turned on")
         
-    def turnOffHeater(self, time: datetime, effectiveTemp: float, isTurnOn:bool):
+    def turnOffHeater(self, time: datetime, isTurnOn:bool):
         self.log("case2")
         if isTurnOn==True:
             self.log("heater is turning off")
@@ -71,24 +107,28 @@ class ControlHeater(hass.Hass):
             heaterSwitch.turn_off()
             lastTurnOffInput = self.get_entity("input_text.heater_last_turn_off")
             lastTurnOffInput.set_state(state=time.strftime(self.TIME_FORMAT))
-            self.logStateToFile(time, effectiveTemp, False)
-            self.run_in(self.turnOffFan, 10*60)
+            self.logStateToFile(time, False)
+            self.run_in(self.turnOffFan, 15*60)
 
     def turnOffFan(self, kwargs):
         guestFanSmartPlugSwitch = self.get_entity(self.guestFanSmartPlugSwitchId)
-        guestFan2SmartPlugSwitch = self.get_entity(self.guestFan2SmartPlugSwitchId)
+        groundFloorFanSmartPlugSwitch = self.get_entity(self.groundFloorFanSmartPlugSwitchId)
+        boysRoomFanPowerPlug = self.get_entity(self.boysRoomFanPowerPlugId)
         guestFanSmartPlugSwitch.turn_off()
+        groundFloorFanSmartPlugSwitch.turn_off()
+        boysRoomFanPowerPlug.turn_off()
         #guestFan2SmartPlugSwitch.turn_off()
         self.log("fan turned off")
 
-    def logStateToFile(self, time: datetime, effectiveTemp: float, isTurnOn: bool):
+    def logStateToFile(self, time: datetime, isTurnOn: bool):
         logFilePath = "/conf/apps-data/heater.csv"
         
-        boysRoomTemp = float(self.get_state("sensor.atc_220f_temperature"))
-        guestRoomTemp = float(self.get_state("sensor.atc_58fc_temperature"))
+        groundFloorTemp = self.getTemp("sensor.termometer6_temperature")
+        boysRoomTemp = self.getTemp("sensor.atc_220f_temperature")
+        guestRoomTemp = self.getTemp("sensor.atc_58fc_temperature")
 
         tempJson ={
-            "effective": effectiveTemp,
+            "groundFloor": groundFloorTemp,
             "boysRoom": boysRoomTemp,
             "guestRoom": guestRoomTemp
         }
